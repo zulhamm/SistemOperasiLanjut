@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Scheduler FIFO - Gantt Chart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(120deg, #fdfbfb, #ebedee);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    h1, h2, h3 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      margin-top: 30px;
+      font-size: 28px;
+      color: #2c3e50;
+    }
+
+    h3 {
+      font-weight: normal;
+      color: #7f8c8d;
+    }
+
+    form {
+      width: 90%;
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      font-weight: 500;
+      margin-top: 10px;
+    }
+
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      background: #2980b9;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #1c638d;
+    }
+
+    .proses-container {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-left: 5px solid #3498db;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    table {
+      width: 90%;
+      margin: 30px auto;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background-color: #2c3e50;
+      color: white;
+      font-weight: 600;
+    }
+
+    .gantt-chart {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin: 30px auto;
+      padding: 15px;
+      width: 90%;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+
+    .gantt-block {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 2px;
+      position: relative;
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      border-radius: 6px;
+      padding: 0 10px;
+      cursor: pointer;
+    }
+
+    .gantt-block:hover::after {
+      content: attr(data-name);
+      position: absolute;
+      top: -28px;
+      background: #333;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .gantt-time {
+      display: flex;
+      font-size: 12px;
+      width: 90%;
+      margin: 5px auto 40px;
+      justify-content: flex-start;
+    }
+
+    .gantt-time span {
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .idle-block {
+      background-color: #7f8c8d !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>Zulham Solihin</h1>
+  <h3>--> 11240032 TI A <--</h3>
+  <h2>-!- Scheduler FIFO (First In First Out) -!-</h2>
+
+
+  <!-- Form -->
+  <form id="fifoForm">
+    <label for="jumlah">Masukkan jumlah proses:</label>
+    <input type="number" id="jumlah" name="jumlah" min="1" required>
+
+    <div id="processInputs"></div>
+
+    <button type="button" onclick="generateInputs()">Buat Input Proses</button>
+    <button type="button" onclick="runFIFO()">Jalankan FIFO</button>
+  </form>
+
+  <div id="output"></div>
+
+  <!-- JavaScript -->
+  <script>
+    function generateInputs() {
+      const jumlah = parseInt(document.getElementById('jumlah').value);
+      const container = document.getElementById('processInputs');
+      container.innerHTML = '';
+
+      for (let i = 0; i < jumlah; i++) {
+        container.innerHTML += `
+          <div class="proses-container">
+            <h4>Proses ke-${i + 1}</h4>
+            <label>Nama Job:</label>
+            <input type="text" name="nama${i}" required>
+            <label>CPU Time:</label>
+            <input type="number" name="burst${i}" min="1" required>
+            <label>Waktu Kedatangan:</label>
+            <input type="number" name="arrival${i}" min="0" required>
+          </div>
+        `;
+      }
+    }
+
+    function runFIFO() {
+      const jumlah = parseInt(document.getElementById('jumlah').value);
+      const processes = [];
+
+      for (let i = 0; i < jumlah; i++) {
+        const nama = document.querySelector(`[name='nama${i}']`).value;
+        const burst = parseInt(document.querySelector(`[name='burst${i}']`).value);
+        const arrival = parseInt(document.querySelector(`[name='arrival${i}']`).value);
+        processes.push({
+          pid: i + 1,
+          namaJob: nama,
+          burstTime: burst,
+          arrivalTime: arrival
+        });
+      }
+
+      // Urutkan berdasarkan arrival time
+      processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+
+      let currentTime = 0;
+      const timeline = [], timelineTime = [];
+      const colors = ['#3498db', '#e74c3c', '#2ecc71', '#9b59b6', '#f39c12', '#1abc9c'];
+      let colorIndex = 0;
+
+      processes.forEach((p, index) => {
+        if (p.arrivalTime > currentTime) {
+          timeline.push({
+            name: 'IDLE',
+            time: p.arrivalTime - currentTime,
+            color: '#7f8c8d',
+            isIdle: true
+          });
+          timelineTime.push(currentTime);
+          currentTime = p.arrivalTime;
+        }
+
+        timeline.push({
+          name: p.namaJob,
+          time: p.burstTime,
+          color: colors[colorIndex++ % colors.length],
+          isIdle: false
+        });
+        timelineTime.push(currentTime);
+
+        currentTime += p.burstTime;
+        p.completionTime = currentTime;
+        p.tat = p.completionTime - p.arrivalTime;
+        p.executionOrder = index + 1;
+      });
+      timelineTime.push(currentTime);
+
+      // Output
+      let html = `<h3>Hasil Eksekusi</h3>`;
+      html += `<table><tr><th>No Antrian</th><th>No Eksekusi</th><th>Nama Job</th><th>Arrival Time</th><th>CPU Time</th><th>Completion Time</th><th>Turnaround Time</th></tr>`;
+      for (const p of processes) {
+        html += `<tr><td>${p.pid}</td><td>${p.executionOrder}</td><td>${p.namaJob}</td><td>${p.arrivalTime}</td><td>${p.burstTime}</td><td>${p.completionTime}</td><td>${p.tat}</td></tr>`;
+      }
+      html += `</table>`;
+
+      html += `<h3>Gantt Chart</h3><div class="gantt-chart">`;
+      for (const block of timeline) {
+        const width = block.time * 40;
+        html += `<div class="gantt-block ${block.isIdle ? 'idle-block' : ''}" data-name="${block.name}" style="width:${width}px; background-color:${block.color}">${block.name}</div>`;
+      }
+      html += `</div>`;
+
+      html += `<div class="gantt-time">`;
+      for (const t of timelineTime) {
+        html += `<span>${t}</span>`;
+      }
+      html += `</div>`;
+
+      document.getElementById('output').innerHTML = html;
+    }
+  </script>
+</body>
+</html>
